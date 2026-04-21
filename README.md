@@ -1,2 +1,2 @@
-# homebrew-hermes
+# shiyan
 my hermes
