@@ -40,40 +40,32 @@ class HermesAgent < Formula
   depends_on "git"
 
   def install
-    # Download the official install.sh
-    install_sh = (buildpath/"install.sh")
-    curl_download "https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh",
-                  to: install_sh
+    # Homebrew already downloaded install.sh into buildpath (via the `url` directive)
+    # The downloaded file retains the original name from the URL
+    install_sh = buildpath/"install.sh"
     chmod "+x", install_sh
 
     # The install script puts code at: ~/.hermes/hermes-agent
     # and symlinks hermes → ~/.local/bin/hermes
     #
     # For Homebrew, we want everything under HOMEBREW_PREFIX/hermes-agent.
-    # Pass env vars to override defaults:
-    #   HERMES_HOME       — config/data dir
-    #   HERMES_INSTALL_DIR — code dir (venv location)
     hermes_home = etc/"hermes"
     install_dir = prefix/"hermes-agent"
 
     # Ensure ~/.local/bin exists (install.sh needs it)
-    (ENV["HOME"] + "/.local/bin").mkdir_p unless (ENV["HOME"] + "/.local/bin").exist?
+    (Pathname.new(ENV["HOME"])/".local/bin").mkpath
 
     # Run the official installer non-interactively
-    # RUN_SETUP=false: skip interactive wizard (user runs `hermes setup` manually)
-    # USE_VENV=true: always create a venv
     system "/bin/bash", install_sh.to_s,
            "--hermes-home", hermes_home.to_s,
            "--dir", install_dir.to_s,
            "--skip-setup"
 
     # After install, the script symlinks hermes → ~/.local/bin/hermes
-    # We also create a bin/hermes stub so `which hermes` works inside Homebrew env
-    local_hermes = Pathname.new("#{ENV["HOME"]}/.local/bin/hermes")
-    if local_hermes.exist?
-      # Point Homebrew's bin/ to the same venv binary
-      venv_hermes = install_dir/"venv/bin/hermes"
-      bin.install_symlink venv_hermes if venv_hermes.exist?
+    # Also create a bin/hermes stub so `which hermes` works inside Homebrew env
+    venv_hermes = install_dir/"venv/bin/hermes"
+    if venv_hermes.exist?
+      bin.install_symlink venv_hermes
     end
   end
 
